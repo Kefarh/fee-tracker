@@ -1,5 +1,3 @@
-// ✅ Replace this with your actual Firebase config
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyAKlM6pPf93zjLj49Y-nyKUIsIaLE5UmK8",
   authDomain: "fee-tracker-cadad.firebaseapp.com",
@@ -9,7 +7,6 @@ const firebaseConfig = {
   appId: "1:372847716849:web:15824518e99abe2c697c50",
   measurementId: "G-DQXRXSGSE1"
 };
-
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
@@ -50,10 +47,8 @@ function recordPayment() {
       const data = doc.data();
       const newPaid = data.paid + amount;
 
-      // Update total paid
       studentRef.update({ paid: newPaid });
 
-      // Add to payments subcollection
       studentRef.collection("payments").add({
         amount,
         description,
@@ -96,25 +91,87 @@ function updateFeeTable() {
         <td>${student.name} (${student.grade})</td>
         <td>${student.totalFee}</td>
         <td>${student.paid}</td>
-        <td>${student.totalFee - student.paid}</td>
+        <td>
+          ${student.totalFee - student.paid}
+          <br><button onclick="openPaymentHistory('${doc.id}')">View History</button>
+        </td>
       `;
       tbody.appendChild(tr);
-
-      // Add payment record rows
-      doc.ref.collection("payments").orderBy("date", "desc").get().then(paymentsSnap => {
-        paymentsSnap.forEach(paymentDoc => {
-          const pay = paymentDoc.data();
-          const payRow = document.createElement('tr');
-          payRow.innerHTML = `
-            <td colspan="4" style="padding-left: 20px; font-size: 0.9em; color: #555;">
-              ↳ ${pay.description} - $${pay.amount} on ${pay.date.toDate().toLocaleDateString()}
-            </td>
-          `;
-          tbody.appendChild(payRow);
-        });
-      });
     });
   });
+}
+
+// Open modal with payment history
+function openPaymentHistory(studentId) {
+  const modal = document.getElementById('paymentModal');
+  const container = document.getElementById('paymentHistoryList');
+  container.innerHTML = 'Loading...';
+
+  const studentRef = db.collection("students").doc(studentId);
+  studentRef.collection("payments").orderBy("date", "desc").get().then(snapshot => {
+    container.innerHTML = '';
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const div = document.createElement('div');
+      div.className = 'payment-entry';
+
+      const date = data.date.toDate().toLocaleDateString();
+
+      div.innerHTML = `
+        <input type="text" value="${data.description}" id="desc-${doc.id}">
+        <input type="number" value="${data.amount}" id="amt-${doc.id}">
+        <span>${date}</span>
+        <button onclick="saveEdit('${studentId}', '${doc.id}')">💾</button>
+        <button onclick="deletePayment('${studentId}', '${doc.id}', ${data.amount})">🗑️</button>
+      `;
+
+      container.appendChild(div);
+    });
+  });
+
+  modal.classList.remove('hidden');
+}
+
+// Save edited payment
+function saveEdit(studentId, paymentId) {
+  const desc = document.getElementById(`desc-${paymentId}`).value;
+  const amt = parseFloat(document.getElementById(`amt-${paymentId}`).value);
+
+  if (!desc || isNaN(amt)) return alert("Invalid input");
+
+  const paymentRef = db.collection("students").doc(studentId).collection("payments").doc(paymentId);
+  paymentRef.update({ description: desc, amount: amt }).then(() => {
+    alert("Payment updated.");
+    updateFeeTable();
+  });
+}
+
+// Delete a payment
+function deletePayment(studentId, paymentId, amount) {
+  if (!confirm("Are you sure you want to delete this payment?")) return;
+
+  const studentRef = db.collection("students").doc(studentId);
+  const paymentRef = studentRef.collection("payments").doc(paymentId);
+
+  studentRef.get().then(doc => {
+    if (doc.exists) {
+      const student = doc.data();
+      const newPaid = Math.max(0, student.paid - amount);
+
+      studentRef.update({ paid: newPaid }).then(() => {
+        paymentRef.delete().then(() => {
+          alert("Payment deleted.");
+          updateFeeTable();
+          openPaymentHistory(studentId);
+        });
+      });
+    }
+  });
+}
+
+// Close modal
+function closeModal() {
+  document.getElementById('paymentModal').classList.add('hidden');
 }
 
 // Initial load
