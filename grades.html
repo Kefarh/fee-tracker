@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Grade View - Fee Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <script src="https://www.gstatic.com/firebasejs/10.3.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.3.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+  <nav>
+    <button onclick="window.location.href='index.html'">🏠 Dashboard</button>
+    <button onclick="window.history.back()">← Back</button>
+  </nav>
+
+  <section class="page">
+    <h1 id="gradeTitle">Grade X Students</h1>
+    <input type="text" id="studentSearch" placeholder="Search Student..." oninput="filterStudentList()" />
+    <ul id="studentList"></ul>
+  </section>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAKlM6pPf93zjLj49Y-nyKUIsIaLE5UmK8",
+      authDomain: "fee-tracker-cadad.firebaseapp.com",
+      projectId: "fee-tracker-cadad",
+      storageBucket: "fee-tracker-cadad.firebasestorage.app",
+      messagingSenderId: "372847716849",
+      appId: "1:372847716849:web:15824518e99abe2c697c50",
+      measurementId: "G-DQXRXSGSE1"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const queryParams = new URLSearchParams(window.location.search);
+    const gradeNum = queryParams.get('grade');
+    const gradeName = `Grade ${gradeNum}`;
+    document.getElementById('gradeTitle').textContent = `${gradeName} Students`;
+
+    function loadGradeStudents() {
+      db.collection("students").where("grade", "==", gradeName).get().then(snapshot => {
+        const ul = document.getElementById("studentList");
+        ul.innerHTML = "";
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const li = document.createElement("li");
+          li.textContent = `${data.name} – Paid: $${data.paid} / $${data.totalFee}`;
+          ul.appendChild(li);
+        });
+      });
+    }
+
+    function filterStudentList() {
+      const search = document.getElementById("studentSearch").value.toLowerCase();
+      const items = document.querySelectorAll("#studentList li");
+      items.forEach(item => {
+        item.style.display = item.textContent.toLowerCase().includes(search) ? "" : "none";
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", loadGradeStudents);
+  </script>
+</body>
+</html>
