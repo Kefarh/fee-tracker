@@ -1,4 +1,3 @@
-// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyAKlM6pPf93zjLj49Y-nyKUIsIaLE5UmK8",
   authDomain: "fee-tracker-cadad.firebaseapp.com",
@@ -30,7 +29,7 @@ function addStudent() {
     document.getElementById('totalFee').value = '';
     loadStudentsDropdown();
     populateGradeFilter();
-    updateFeeTable();
+    filterRecords(); // refresh view
   });
 }
 
@@ -59,13 +58,13 @@ function recordPayment() {
       }).then(() => {
         document.getElementById('amountPaid').value = '';
         document.getElementById('paymentDescription').value = '';
-        updateFeeTable();
+        filterRecords();
       });
     }
   });
 }
 
-// Load student dropdown
+// Load students into dropdown
 function loadStudentsDropdown() {
   const select = document.getElementById('studentSelect');
   select.innerHTML = '';
@@ -80,33 +79,31 @@ function loadStudentsDropdown() {
   });
 }
 
-// Populate grade filter dropdown
+// Populate unique grades in the grade filter dropdown
 function populateGradeFilter() {
   const gradeSelect = document.getElementById('filterGrade');
-  const seen = new Set();
-
-  // Reset dropdown
-  gradeSelect.innerHTML = `<option value="">All Grades</option>`;
-
+  gradeSelect.innerHTML = '<option value="">All Grades</option>';
+  const grades = new Set();
   db.collection("students").get().then(snapshot => {
     snapshot.forEach(doc => {
       const grade = doc.data().grade;
-      if (!seen.has(grade)) {
-        seen.add(grade);
-        const option = document.createElement("option");
-        option.value = grade;
-        option.textContent = grade;
-        gradeSelect.appendChild(option);
-      }
+      if (grade) grades.add(grade);
+    });
+    grades.forEach(grade => {
+      const option = document.createElement('option');
+      option.value = grade;
+      option.textContent = grade;
+      gradeSelect.appendChild(option);
     });
   });
 }
 
-// Filter and display student records
+// Filter records based on grade, date, and name
 function filterRecords() {
   const grade = document.getElementById('filterGrade').value.trim().toLowerCase();
   const startDate = document.getElementById('filterStartDate').value;
   const endDate = document.getElementById('filterEndDate').value;
+  const searchName = document.getElementById('filterName').value.trim().toLowerCase();
 
   const tbody = document.querySelector('#feeTable tbody');
   tbody.innerHTML = '';
@@ -115,8 +112,12 @@ function filterRecords() {
     snapshot.forEach(studentDoc => {
       const student = studentDoc.data();
       const studentGrade = student.grade.toLowerCase();
+      const studentName = student.name.toLowerCase();
 
-      if (grade && studentGrade !== grade) return;
+      const matchesGrade = !grade || studentGrade === grade;
+      const matchesName = !searchName || studentName.includes(searchName);
+
+      if (!matchesGrade || !matchesName) return;
 
       studentDoc.ref.collection("payments").orderBy("date").get().then(paymentSnap => {
         const filteredPayments = paymentSnap.docs.filter(doc => {
@@ -155,20 +156,13 @@ function filterRecords() {
   });
 }
 
-// Default table display
-function updateFeeTable() {
-  document.getElementById('filterGrade').value = '';
-  document.getElementById('filterStartDate').value = '';
-  document.getElementById('filterEndDate').value = '';
-  filterRecords();
-}
+// Listeners for live filtering
+document.getElementById('filterGrade').addEventListener('change', filterRecords);
+document.getElementById('filterStartDate').addEventListener('change', filterRecords);
+document.getElementById('filterEndDate').addEventListener('change', filterRecords);
+document.getElementById('filterName').addEventListener('input', filterRecords);
 
-// Initial setup
+// Initial load
 loadStudentsDropdown();
 populateGradeFilter();
-updateFeeTable();
-
-// Live filter events
-document.getElementById('filterGrade').addEventListener('change', filterRecords);
-document.getElementById('filterStartDate').addEventListener('input', filterRecords);
-document.getElementById('filterEndDate').addEventListener('input', filterRecords);
+filterRecords();
