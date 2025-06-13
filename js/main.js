@@ -101,6 +101,67 @@ function updateFeeTable() {
   });
 }
 
+    // filter records with grade and date
+function filterRecords() {
+  const grade = document.getElementById('filterGrade').value.trim().toLowerCase();
+  const startDate = document.getElementById('filterStartDate').value;
+  const endDate = document.getElementById('filterEndDate').value;
+
+  const tbody = document.querySelector('#feeTable tbody');
+  tbody.innerHTML = '';
+
+  db.collection("students").get().then(snapshot => {
+    snapshot.forEach(studentDoc => {
+      const student = studentDoc.data();
+      const studentGrade = student.grade.toLowerCase();
+
+      // Grade filter
+      if (grade && studentGrade !== grade) return;
+
+      // Proceed with payment filtering
+      studentDoc.ref.collection("payments").orderBy("date").get().then(paymentSnap => {
+        let hasMatch = false;
+
+        const filteredPayments = paymentSnap.docs.filter(doc => {
+          const data = doc.data();
+          const date = data.date.toDate();
+          const matchStart = startDate ? new Date(startDate) <= date : true;
+          const matchEnd = endDate ? new Date(endDate + "T23:59:59") >= date : true;
+          return matchStart && matchEnd;
+        });
+
+        if (filteredPayments.length > 0) {
+          // Show student row
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${student.name} (${student.grade})</td>
+            <td>${student.totalFee}</td>
+            <td>${student.paid}</td>
+            <td>${student.totalFee - student.paid}</td>
+          `;
+          tbody.appendChild(tr);
+          hasMatch = true;
+        }
+
+        // Add payment rows
+        filteredPayments.forEach(paymentDoc => {
+          const data = paymentDoc.data();
+          const dateStr = data.date.toDate().toLocaleDateString();
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td colspan="4" style="padding-left: 20px; font-size: 0.9em;">
+              ↳ ${data.description} - $${data.amount} on ${dateStr}
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      });
+    });
+  });
+}
+
+
 // Open modal with payment history
 function openPaymentHistory(studentId) {
   const modal = document.getElementById('paymentModal');
