@@ -29,6 +29,25 @@
     </section>
 
     <section>
+        <h2>Filter Records</h2>
+        <label>
+            Grade:
+            <input type="text" id="filterGrade" placeholder="e.g. Grade 5">
+        </label>
+        <label>
+            From:
+            <input type="date" id="filterStartDate">
+        </label>
+        <label>
+            To:
+            <input type="date" id="filterEndDate">
+        </label>
+        <button onclick="filterRecords()">Apply Filter</button>
+        <button onclick="updateFeeTable()">Reset</button>
+    </section>
+
+
+    <section>
     <h2>Student Fee Records</h2>
     <table id="feeTable">
         <thead>
