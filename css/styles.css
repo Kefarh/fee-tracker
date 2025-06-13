@@ -50,3 +50,33 @@ th, td {
   background-color: #f9f9f9;
   font-style: italic;
 }
+
+.modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 10;
+}
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 500px;
+  width: 90%;
+}
+.hidden { display: none; }
+.close {
+  float: right;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+.payment-entry {
+  margin-bottom: 12px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 8px;
+}
+.payment-entry input {
+  width: 100px;
+  margin-right: 5px;
+}
