@@ -1,3 +1,4 @@
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyAKlM6pPf93zjLj49Y-nyKUIsIaLE5UmK8",
   authDomain: "fee-tracker-cadad.firebaseapp.com",
@@ -28,6 +29,8 @@ function addStudent() {
     document.getElementById('studentGrade').value = '';
     document.getElementById('totalFee').value = '';
     loadStudentsDropdown();
+    populateGradeFilter();
+    updateFeeTable();
   });
 }
 
@@ -62,7 +65,7 @@ function recordPayment() {
   });
 }
 
-// Load students into dropdown
+// Load student dropdown
 function loadStudentsDropdown() {
   const select = document.getElementById('studentSelect');
   select.innerHTML = '';
@@ -77,31 +80,29 @@ function loadStudentsDropdown() {
   });
 }
 
-// Update student fee table
-function updateFeeTable() {
-  const tbody = document.querySelector('#feeTable tbody');
-  tbody.innerHTML = '';
+// Populate grade filter dropdown
+function populateGradeFilter() {
+  const gradeSelect = document.getElementById('filterGrade');
+  const seen = new Set();
 
-  db.collection("students").onSnapshot(snapshot => {
-    tbody.innerHTML = '';
+  // Reset dropdown
+  gradeSelect.innerHTML = `<option value="">All Grades</option>`;
+
+  db.collection("students").get().then(snapshot => {
     snapshot.forEach(doc => {
-      const student = doc.data();
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${student.name} (${student.grade})</td>
-        <td>${student.totalFee}</td>
-        <td>${student.paid}</td>
-        <td>
-          ${student.totalFee - student.paid}
-          <br><button onclick="openPaymentHistory('${doc.id}')">View History</button>
-        </td>
-      `;
-      tbody.appendChild(tr);
+      const grade = doc.data().grade;
+      if (!seen.has(grade)) {
+        seen.add(grade);
+        const option = document.createElement("option");
+        option.value = grade;
+        option.textContent = grade;
+        gradeSelect.appendChild(option);
+      }
     });
   });
 }
 
-    // filter records with grade and date
+// Filter and display student records
 function filterRecords() {
   const grade = document.getElementById('filterGrade').value.trim().toLowerCase();
   const startDate = document.getElementById('filterStartDate').value;
@@ -115,13 +116,9 @@ function filterRecords() {
       const student = studentDoc.data();
       const studentGrade = student.grade.toLowerCase();
 
-      // Grade filter
       if (grade && studentGrade !== grade) return;
 
-      // Proceed with payment filtering
       studentDoc.ref.collection("payments").orderBy("date").get().then(paymentSnap => {
-        let hasMatch = false;
-
         const filteredPayments = paymentSnap.docs.filter(doc => {
           const data = doc.data();
           const date = data.date.toDate();
@@ -131,7 +128,6 @@ function filterRecords() {
         });
 
         if (filteredPayments.length > 0) {
-          // Show student row
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td>${student.name} (${student.grade})</td>
@@ -140,101 +136,39 @@ function filterRecords() {
             <td>${student.totalFee - student.paid}</td>
           `;
           tbody.appendChild(tr);
-          hasMatch = true;
         }
 
-        // Add payment rows
         filteredPayments.forEach(paymentDoc => {
           const data = paymentDoc.data();
           const dateStr = data.date.toDate().toLocaleDateString();
 
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td colspan="4" style="padding-left: 20px; font-size: 0.9em;">
+          const payTr = document.createElement('tr');
+          payTr.innerHTML = `
+            <td colspan="4" style="padding-left: 20px; font-size: 0.9em; color: #555;">
               ↳ ${data.description} - $${data.amount} on ${dateStr}
             </td>
           `;
-          tbody.appendChild(tr);
+          tbody.appendChild(payTr);
         });
       });
     });
   });
 }
 
-
-// Open modal with payment history
-function openPaymentHistory(studentId) {
-  const modal = document.getElementById('paymentModal');
-  const container = document.getElementById('paymentHistoryList');
-  container.innerHTML = 'Loading...';
-
-  const studentRef = db.collection("students").doc(studentId);
-  studentRef.collection("payments").orderBy("date", "desc").get().then(snapshot => {
-    container.innerHTML = '';
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const div = document.createElement('div');
-      div.className = 'payment-entry';
-
-      const date = data.date.toDate().toLocaleDateString();
-
-      div.innerHTML = `
-        <input type="text" value="${data.description}" id="desc-${doc.id}">
-        <input type="number" value="${data.amount}" id="amt-${doc.id}">
-        <span>${date}</span>
-        <button onclick="saveEdit('${studentId}', '${doc.id}')">💾</button>
-        <button onclick="deletePayment('${studentId}', '${doc.id}', ${data.amount})">🗑️</button>
-      `;
-
-      container.appendChild(div);
-    });
-  });
-
-  modal.classList.remove('hidden');
+// Default table display
+function updateFeeTable() {
+  document.getElementById('filterGrade').value = '';
+  document.getElementById('filterStartDate').value = '';
+  document.getElementById('filterEndDate').value = '';
+  filterRecords();
 }
 
-// Save edited payment
-function saveEdit(studentId, paymentId) {
-  const desc = document.getElementById(`desc-${paymentId}`).value;
-  const amt = parseFloat(document.getElementById(`amt-${paymentId}`).value);
-
-  if (!desc || isNaN(amt)) return alert("Invalid input");
-
-  const paymentRef = db.collection("students").doc(studentId).collection("payments").doc(paymentId);
-  paymentRef.update({ description: desc, amount: amt }).then(() => {
-    alert("Payment updated.");
-    updateFeeTable();
-  });
-}
-
-// Delete a payment
-function deletePayment(studentId, paymentId, amount) {
-  if (!confirm("Are you sure you want to delete this payment?")) return;
-
-  const studentRef = db.collection("students").doc(studentId);
-  const paymentRef = studentRef.collection("payments").doc(paymentId);
-
-  studentRef.get().then(doc => {
-    if (doc.exists) {
-      const student = doc.data();
-      const newPaid = Math.max(0, student.paid - amount);
-
-      studentRef.update({ paid: newPaid }).then(() => {
-        paymentRef.delete().then(() => {
-          alert("Payment deleted.");
-          updateFeeTable();
-          openPaymentHistory(studentId);
-        });
-      });
-    }
-  });
-}
-
-// Close modal
-function closeModal() {
-  document.getElementById('paymentModal').classList.add('hidden');
-}
-
-// Initial load
+// Initial setup
 loadStudentsDropdown();
+populateGradeFilter();
 updateFeeTable();
+
+// Live filter events
+document.getElementById('filterGrade').addEventListener('change', filterRecords);
+document.getElementById('filterStartDate').addEventListener('input', filterRecords);
+document.getElementById('filterEndDate').addEventListener('input', filterRecords);
