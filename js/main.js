@@ -17,15 +17,18 @@ const db = firebase.firestore();
 // Add student
 function addStudent() {
   const name = document.getElementById('studentName').value.trim();
+  const grade = document.getElementById('studentGrade').value.trim();
   const totalFee = parseFloat(document.getElementById('totalFee').value);
-  if (!name || isNaN(totalFee)) return alert("Please enter valid details");
+  if (!name || !grade || isNaN(totalFee)) return alert("Please enter valid details");
 
   db.collection("students").add({
     name,
+    grade,
     totalFee,
     paid: 0
   }).then(() => {
     document.getElementById('studentName').value = '';
+    document.getElementById('studentGrade').value = '';
     document.getElementById('totalFee').value = '';
     loadStudentsDropdown();
   });
@@ -35,15 +38,29 @@ function addStudent() {
 function recordPayment() {
   const studentId = document.getElementById('studentSelect').value;
   const amount = parseFloat(document.getElementById('amountPaid').value);
-  if (!studentId || isNaN(amount)) return alert("Invalid input");
+  const description = document.getElementById('paymentDescription').value.trim();
+  const date = new Date();
 
-  const ref = db.collection("students").doc(studentId);
-  ref.get().then(doc => {
+  if (!studentId || isNaN(amount) || !description) return alert("Invalid payment input");
+
+  const studentRef = db.collection("students").doc(studentId);
+
+  studentRef.get().then(doc => {
     if (doc.exists) {
       const data = doc.data();
       const newPaid = data.paid + amount;
-      ref.update({ paid: newPaid }).then(() => {
+
+      // Update total paid
+      studentRef.update({ paid: newPaid });
+
+      // Add to payments subcollection
+      studentRef.collection("payments").add({
+        amount,
+        description,
+        date: firebase.firestore.Timestamp.fromDate(date)
+      }).then(() => {
         document.getElementById('amountPaid').value = '';
+        document.getElementById('paymentDescription').value = '';
         updateFeeTable();
       });
     }
@@ -59,7 +76,7 @@ function loadStudentsDropdown() {
       const data = doc.data();
       const option = document.createElement('option');
       option.value = doc.id;
-      option.textContent = data.name;
+      option.textContent = `${data.name} (${data.grade})`;
       select.appendChild(option);
     });
   });
@@ -69,18 +86,33 @@ function loadStudentsDropdown() {
 function updateFeeTable() {
   const tbody = document.querySelector('#feeTable tbody');
   tbody.innerHTML = '';
+
   db.collection("students").onSnapshot(snapshot => {
     tbody.innerHTML = '';
     snapshot.forEach(doc => {
-      const data = doc.data();
+      const student = doc.data();
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${data.name}</td>
-        <td>${data.totalFee}</td>
-        <td>${data.paid}</td>
-        <td>${data.totalFee - data.paid}</td>
+        <td>${student.name} (${student.grade})</td>
+        <td>${student.totalFee}</td>
+        <td>${student.paid}</td>
+        <td>${student.totalFee - student.paid}</td>
       `;
       tbody.appendChild(tr);
+
+      // Add payment record rows
+      doc.ref.collection("payments").orderBy("date", "desc").get().then(paymentsSnap => {
+        paymentsSnap.forEach(paymentDoc => {
+          const pay = paymentDoc.data();
+          const payRow = document.createElement('tr');
+          payRow.innerHTML = `
+            <td colspan="4" style="padding-left: 20px; font-size: 0.9em; color: #555;">
+              ↳ ${pay.description} - $${pay.amount} on ${pay.date.toDate().toLocaleDateString()}
+            </td>
+          `;
+          tbody.appendChild(payRow);
+        });
+      });
     });
   });
 }
