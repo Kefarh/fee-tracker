@@ -45,3 +45,8 @@ th, td {
   padding: 10px;
   text-align: left;
 }
+
+#feeTable tr td[colspan="4"] {
+  background-color: #f9f9f9;
+  font-style: italic;
+}
