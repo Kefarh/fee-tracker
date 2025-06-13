@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>School Fee Tracking System</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/10.3.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.3.1/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<h1>📚 School Fee Tracking System</h1>
+
+<section>
+  <h2>Add Student</h2>
+  <input type="text" id="studentName" placeholder="Student Name">
+  <input type="number" id="totalFee" placeholder="Total Fee">
+  <button onclick="addStudent()">Add Student</button>
+</section>
+
+<section>
+  <h2>Record Fee Payment</h2>
+  <select id="studentSelect"></select>
+  <input type="number" id="amountPaid" placeholder="Amount Paid">
+  <button onclick="recordPayment()">Record Payment</button>
+</section>
+
+<section>
+  <h2>Student Fee Records</h2>
+  <table id="feeTable">
+    <thead>
+      <tr>
+        <th>Student</th>
+        <th>Total Fee</th>
+        <th>Paid</th>
+        <th>Balance</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<script src="script.js"></script>
+</body>
+</html>
