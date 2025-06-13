@@ -10,65 +10,69 @@ const firebaseConfig = {
   measurementId: "G-DQXRXSGSE1"
 };
 
-// Initialize Firebase
+
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+const db = firebase.firestore();
 
 // Add student
 function addStudent() {
   const name = document.getElementById('studentName').value.trim();
   const totalFee = parseFloat(document.getElementById('totalFee').value);
-  if (!name || isNaN(totalFee)) return alert("Please fill in both fields.");
+  if (!name || isNaN(totalFee)) return alert("Please enter valid details");
 
-  const newRef = db.ref('students').push();
-  newRef.set({
+  db.collection("students").add({
     name,
     totalFee,
     paid: 0
+  }).then(() => {
+    document.getElementById('studentName').value = '';
+    document.getElementById('totalFee').value = '';
+    loadStudentsDropdown();
   });
-
-  document.getElementById('studentName').value = '';
-  document.getElementById('totalFee').value = '';
 }
 
 // Record payment
 function recordPayment() {
   const studentId = document.getElementById('studentSelect').value;
   const amount = parseFloat(document.getElementById('amountPaid').value);
-  if (!studentId || isNaN(amount)) return alert("Please select student and enter amount.");
+  if (!studentId || isNaN(amount)) return alert("Invalid input");
 
-  const studentRef = db.ref('students/' + studentId);
-  studentRef.once('value', snapshot => {
-    const data = snapshot.val();
-    const newPaid = data.paid + amount;
-    studentRef.update({ paid: newPaid });
+  const ref = db.collection("students").doc(studentId);
+  ref.get().then(doc => {
+    if (doc.exists) {
+      const data = doc.data();
+      const newPaid = data.paid + amount;
+      ref.update({ paid: newPaid }).then(() => {
+        document.getElementById('amountPaid').value = '';
+        updateFeeTable();
+      });
+    }
   });
-
-  document.getElementById('amountPaid').value = '';
 }
 
 // Load students into dropdown
 function loadStudentsDropdown() {
-  db.ref('students').once('value', snapshot => {
-    const select = document.getElementById('studentSelect');
-    select.innerHTML = '';
-    snapshot.forEach(child => {
-      const data = child.val();
+  const select = document.getElementById('studentSelect');
+  select.innerHTML = '';
+  db.collection("students").get().then(snapshot => {
+    snapshot.forEach(doc => {
+      const data = doc.data();
       const option = document.createElement('option');
-      option.value = child.key;
+      option.value = doc.id;
       option.textContent = data.name;
       select.appendChild(option);
     });
   });
 }
 
-// Update table with student data
+// Update student fee table
 function updateFeeTable() {
-  db.ref('students').on('value', snapshot => {
-    const tbody = document.querySelector('#feeTable tbody');
+  const tbody = document.querySelector('#feeTable tbody');
+  tbody.innerHTML = '';
+  db.collection("students").onSnapshot(snapshot => {
     tbody.innerHTML = '';
-    snapshot.forEach(child => {
-      const data = child.val();
+    snapshot.forEach(doc => {
+      const data = doc.data();
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${data.name}</td>
@@ -81,9 +85,6 @@ function updateFeeTable() {
   });
 }
 
-// Initialize app
+// Initial load
 loadStudentsDropdown();
 updateFeeTable();
-
-// Refresh dropdown periodically
-setInterval(loadStudentsDropdown, 5000);
