@@ -32,7 +32,9 @@
         <h2>Filter Records</h2>
         <label>
             Grade:
-            <input type="text" id="filterGrade" placeholder="e.g. Grade 5">
+            <select id="filterGrade">
+            <option value="">All Grades</option>
+            </select>
         </label>
         <label>
             From:
@@ -42,9 +44,8 @@
             To:
             <input type="date" id="filterEndDate">
         </label>
-        <button onclick="filterRecords()">Apply Filter</button>
-        <button onclick="updateFeeTable()">Reset</button>
     </section>
+
 
 
     <section>
