@@ -1,83 +1,77 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>School Fee Tracking System</title>
-  <link rel="stylesheet" href="css/styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>School Fee Tracker</title>
+  <link rel="stylesheet" href="css/styles.css" />
   <script src="https://www.gstatic.com/firebasejs/10.3.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.3.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
-    <h1>📚 School Fee Tracking System</h1>
+  <nav>
+    <button onclick="showPage('dashboard')">Dashboard</button>
+    <button onclick="showPage('addStudentPage')">Add Student</button>
+    <button onclick="showPage('recordPaymentPage')">Record Payment</button>
+    <button onclick="showPage('gradeListPage')">View Grades</button>
+  </nav>
 
-    <section>
-    <h2>Add Student</h2>
-    <input type="text" id="studentName" placeholder="Student Name">
-    <input type="text" id="studentGrade" placeholder="Grade">
-    <input type="number" id="totalFee" placeholder="Total Fee">
+  <!-- Dashboard -->
+  <section id="dashboard" class="page" style="display:none;">
+    <h1>📊 Dashboard</h1>
+    <div id="dashboardSummary">Loading...</div>
+  </section>
+
+  <!-- Add Student Page -->
+  <section id="addStudentPage" class="page" style="display:none;">
+    <h1>Add Student</h1>
+    <input type="text" id="studentName" placeholder="Student Name" />
+    <select id="studentGrade">
+      <option value="">Select Grade</option>
+      <option>Grade 1</option>
+      <option>Grade 2</option>
+      <option>Grade 3</option>
+      <option>Grade 4</option>
+      <option>Grade 5</option>
+      <option>Grade 6</option>
+      <option>Grade 7</option>
+    </select>
+    <input type="number" id="totalFee" placeholder="Total Fee" />
     <button onclick="addStudent()">Add Student</button>
-    </section>
+  </section>
 
-    <section>
-    <h2>Record Fee Payment</h2>
+  <!-- Record Payment Page -->
+  <section id="recordPaymentPage" class="page" style="display:none;">
+    <h1>Record Payment</h1>
     <select id="studentSelect"></select>
-    <input type="number" id="amountPaid" placeholder="Amount Paid">
-    <input type="text" id="paymentDescription" placeholder="Description (e.g. Food)">
+    <input type="text" id="paymentDescription" placeholder="Description (e.g. Tuition, Food)" />
+    <input type="number" id="amountPaid" placeholder="Amount Paid" />
     <button onclick="recordPayment()">Record Payment</button>
-    </section>
+  </section>
 
-    <section>
-        <h2>Filter Records</h2>
-        <label>
-            Search Name:
-            <input type="text" id="filterName" placeholder="Enter student name">
-        </label>
-        <label>
-            Grade:
-            <select id="filterGrade">
-            <option value="">All Grades</option>
-            </select>
-        </label>
-        <label>
-            From:
-            <input type="date" id="filterStartDate">
-        </label>
-        <label>
-            To:
-            <input type="date" id="filterEndDate">
-        </label>
-        <label><input type="text" id="filterName" placeholder="Search Name">
-        </label>
-    </section>
+  <!-- Grade List Page -->
+  <section id="gradeListPage" class="page" style="display:none;">
+    <h1>Select Grade</h1>
+    <ul>
+      <li><a href="#" onclick="showGrade(1)">Grade 1</a></li>
+      <li><a href="#" onclick="showGrade(2)">Grade 2</a></li>
+      <li><a href="#" onclick="showGrade(3)">Grade 3</a></li>
+      <li><a href="#" onclick="showGrade(4)">Grade 4</a></li>
+      <li><a href="#" onclick="showGrade(5)">Grade 5</a></li>
+      <li><a href="#" onclick="showGrade(6)">Grade 6</a></li>
+      <li><a href="#" onclick="showGrade(7)">Grade 7</a></li>
+    </ul>
+  </section>
 
+  <!-- Student List Page -->
+  <section id="studentListSection" class="page" style="display:none;">
+    <h1 id="gradeTitle">Grade</h1>
+    <input type="text" id="studentSearch" oninput="filterStudentList()" placeholder="Search Student..." />
+    <ul id="studentList"></ul>
+    <button onclick="showPage('gradeListPage')">← Back to Grades</button>
+  </section>
 
-
-    <section>
-    <h2>Student Fee Records</h2>
-    <table id="feeTable">
-        <thead>
-        <tr>
-            <th>Student</th>
-            <th>Total Fee</th>
-            <th>Paid</th>
-            <th>Balance</th>
-        </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-    </section>
-    <!-- Payment History Modal -->
-    <div id="paymentModal" class="modal hidden">
-    <div class="modal-content">
-        <span class="close" onclick="closeModal()">&times;</span>
-        <h3>Payment History</h3>
-        <div id="paymentHistoryList"></div>
-    </div>
-    </div>
-
-
-<script src="js/main.js"></script>
+  <script src="js/main.js"></script>
 </body>
 </html>
